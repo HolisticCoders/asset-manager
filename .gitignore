@@ -109,3 +109,4 @@ venv.bak/
 **/credentials.json
 **/settings.yaml
 .vim/*
+asset_manager_user_config.py
