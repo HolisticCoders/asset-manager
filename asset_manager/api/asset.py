@@ -4,9 +4,8 @@ from PySide2.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 from pydrive.drive import GoogleDrive
 from pydrive.files import GoogleDriveFile
 
+from .config import DRIVE_ID
 from .files import list_children
-
-DRIVE_ID = "TO_BE_FILLED"
 
 
 class Item:

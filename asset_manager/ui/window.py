@@ -1,8 +1,9 @@
 from PySide2.QtWidgets import QMainWindow, QTreeView
+
 from asset_manager.api.asset import AssetModel
+from asset_manager.api.config import FOLDER_IDS
 from asset_manager.api.auth import connect_to_google_drive
 
-ROOT_ID = "TO_BE_FILLED"
 
 
 class AssetManagerWindow(QMainWindow):
@@ -12,7 +13,7 @@ class AssetManagerWindow(QMainWindow):
         self.tree_view = QTreeView()
         self.setCentralWidget(self.tree_view)
         google_drive = connect_to_google_drive()
-        model = AssetModel(google_drive, [ROOT_ID])
+        model = AssetModel(google_drive, FOLDER_IDS)
         self.tree_view.setModel(model)
         self.tree_view.header().hide()
 
