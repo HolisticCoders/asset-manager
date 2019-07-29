@@ -9,12 +9,14 @@ license = "MIT"
 python = "^3.7"
 pydrive = "^1.3"
 pyside2 = "^5.13"
+qdarkstyle = "^2.7"
 
 [tool.poetry.dev-dependencies]
 pytest-qt = "^3.2"
 pytest-cov = "^2.7"
 pytest = "^5.0"
-
+black = {version = "^18.3-alpha.0", allows-prereleases = true}
+pylint = "^2.3"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
