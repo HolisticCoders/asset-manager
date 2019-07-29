@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "asset-manager"
+version = "0.1.0"
+description = ""
+authors = ["Muream <muream@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pydrive = "^1.3"
+pyside2 = "^5.13"
+
+[tool.poetry.dev-dependencies]
+pytest-qt = "^3.2"
+pytest-cov = "^2.7"
+pytest = "^5.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
