@@ -110,3 +110,4 @@ venv.bak/
 **/settings.yaml
 .vim/*
 asset_manager_user_config.py
+tags
