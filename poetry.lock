@@ -1,5 +1,5 @@
 [[package]]
-category = "dev"
+category = "main"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 name = "appdirs"
 optional = false
@@ -277,6 +277,7 @@ oauth2client = ">=4.0.0"
 reference = "cf58f81efa67cb30f7c9b3da7d304f214a9b6d3b"
 type = "git"
 url = "https://github.com/googledrive/PyDrive.git"
+
 [[package]]
 category = "dev"
 description = "python code static checker"
@@ -448,7 +449,7 @@ python-versions = ">=2.7"
 version = "0.5.2"
 
 [metadata]
-content-hash = "56e1885c26ca301f179836b39c2f70b747e740a05fbd948167b6a23396bba43c"
+content-hash = "9e1f71250d7a0ea22c9ed7bb23e0a052a22b112f3fc89a3dd3dca846cccadfc0"
 python-versions = "^3.7"
 
 [metadata.hashes]

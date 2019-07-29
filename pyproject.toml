@@ -10,6 +10,7 @@ python = "^3.7"
 pyside2 = "^5.13"
 qdarkstyle = "^2.7"
 pydrive = {git = "https://github.com/googledrive/PyDrive.git"}
+appdirs = "^1.4"
 
 [tool.poetry.dev-dependencies]
 pytest-qt = "^3.2"
