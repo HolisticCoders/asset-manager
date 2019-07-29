@@ -4,7 +4,6 @@ from PySide2.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 from pydrive.drive import GoogleDrive
 from pydrive.files import GoogleDriveFile
 
-from .config import DRIVE_ID
 from .files import list_children
 
 
@@ -41,14 +40,14 @@ class AssetModel(QAbstractItemModel):
             root_file.FetchMetadata()
             root_item = Item(root_row, google_file=root_file)
             self.root_items.append(root_item)
-            categories = list_children(self.google_drive, DRIVE_ID, root_id)
+            categories = list_children(self.google_drive, root_id)
 
             for category_row, category in enumerate(categories):
                 category_item = Item(
                     category_row, parent=root_item, google_file=category
                 )
                 root_item.children.append(category_item)
-                assets = list_children(self.google_drive, DRIVE_ID, category["id"])
+                assets = list_children(self.google_drive, category["id"])
 
                 for asset_row, asset in enumerate(assets):
                     asset_item = Item(asset_row, parent=category_item, google_file=asset)

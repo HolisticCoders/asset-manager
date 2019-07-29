@@ -1,3 +1,2 @@
-DRIVE_ID = "NOT_SPECIFIED"
 FOLDER_IDS = [""]
 
