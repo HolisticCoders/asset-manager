@@ -110,6 +110,6 @@ venv.bak/
 **/settings.yaml
 .vim/*
 .vscode/*
-asset_manager_user_config.py
+asset_manager_config.py
 tags
 
