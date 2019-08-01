@@ -24,6 +24,8 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         file_menu.addAction(settings_action)
 
         self.tree_view = QtWidgets.QTreeView()
+        self.tree_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_menu)
         self.setCentralWidget(self.tree_view)
         google_drive = connect_to_google_drive()
         model = AssetModel(google_drive, FOLDER_IDS)
@@ -33,4 +35,16 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
     def open_settings(self):
         dialog = SettingsDialog()
         dialog.exec_()
+
+    def open_menu(self, position):
+        menu = QtWidgets.QMenu()
+        download_action = menu.addAction("Download")
+        download_action.triggered.connect(self.download_folders)
+        menu.exec_(self.tree_view.viewport().mapToGlobal(position))
+
+    def download_folders(self):
+        logger.info("Downloading")
+        folders: List[Item] = [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+        for folder in folders:
+            folder.download()
 

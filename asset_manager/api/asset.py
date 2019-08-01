@@ -1,10 +1,18 @@
+import logging
+import os
 from typing import List
 
-from PySide2.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
-from pydrive.drive import GoogleDrive
-from pydrive.files import GoogleDriveFile
+from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
 
+from pydrive.drive import GoogleDrive
+from pydrive.files import GoogleDriveFile, FileNotDownloadableError
+
+from .config import user_settings
 from .files import list_children
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Item:
@@ -17,10 +25,43 @@ class Item:
     ) -> None:
         self.row = row
         self.column = column
-        self.parent = parent
+        self.parent: Item = parent
         self.children: List[Item] = []
         self.google_file = google_file
 
+    @property
+    def disk_path(self) -> str:
+        download_dir = user_settings()["Download Directory"]
+        path_items = [self.name]
+
+        last_parent = self
+        while True:
+            parent = last_parent.parent
+            last_parent = parent
+            if parent == None:
+                break
+            path_items.insert(0, parent.name)
+
+        return os.path.join(download_dir, *path_items)
+
+    @property
+    def name(self) -> str:
+        return self.google_file["title"]
+
+    def download(self):
+        logger.info(f"Downlading {self.name}")
+        self.google_file.FetchMetadata()
+        mimetype = self.google_file["mimeType"]
+        try:
+            directory = os.path.dirname(self.disk_path)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            self.google_file.GetContentFile(filename=self.disk_path, mimetype=mimetype)
+        except FileNotDownloadableError:
+            logger.warning(f"Couldn't download {self.name}")
+
+        for child in self.children:
+            child.download()
 
 class AssetModel(QAbstractItemModel):
     asset_column_names = ["name", "id"]
