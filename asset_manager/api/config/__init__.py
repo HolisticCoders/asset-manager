@@ -32,6 +32,11 @@ def user_settings() -> dict:
 
 def set_user_settings(settings: dict) -> None:
     settings_path = _settings_path()
+
+    settings_dir = os.path.dirname(settings_path)
+    if not os.path.exists(settings_dir):
+        os.makedirs(settings_dir)
+
     with open(settings_path, "w") as f:
         f.write(json.dumps(settings))
 

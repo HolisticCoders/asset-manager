@@ -1,11 +1,17 @@
-from PySide2 import QtWidgets, QtCore
+import logging
+from typing import List
 
-from asset_manager.api.asset import AssetModel
-from asset_manager.api.config import FOLDER_IDS
+from PySide2 import QtCore, QtGui, QtWidgets
+
+from asset_manager.api.asset import AssetModel, Item
 from asset_manager.api.auth import connect_to_google_drive
+from asset_manager.api.config import FOLDER_IDS
+from asset_manager.ui.settings import SettingsDialog
+
+logger = logging.getLogger(__name__)
 
 
-class AssetManagerWindow(QMainWindow):
+class AssetManagerWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Asset Manager")
@@ -25,4 +31,6 @@ class AssetManagerWindow(QMainWindow):
         self.tree_view.header().hide()
 
     def open_settings(self):
-        print("OPENING SETTINGS DIALOG")
+        dialog = SettingsDialog()
+        dialog.exec_()
+
