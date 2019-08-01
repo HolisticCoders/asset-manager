@@ -2,7 +2,7 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 
-def connect_to_google_drive():
+def connect_to_google_drive() -> GoogleDrive:
     gauth = GoogleAuth()
     gauth.LocalWebserverAuth()
 
