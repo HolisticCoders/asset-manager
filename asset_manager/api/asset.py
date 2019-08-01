@@ -91,7 +91,9 @@ class AssetModel(QAbstractItemModel):
                 assets = list_children(self.google_drive, category["id"])
 
                 for asset_row, asset in enumerate(assets):
-                    asset_item = Item(asset_row, parent=category_item, google_file=asset)
+                    asset_item = Item(
+                        asset_row, parent=category_item, google_file=asset
+                    )
                     category_item.children.append(asset_item)
 
     def index(
@@ -129,7 +131,6 @@ class AssetModel(QAbstractItemModel):
         item = parent.internalPointer()
         return len(item.children)
 
-
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if not parent.isValid():
             return 1
@@ -146,6 +147,6 @@ class AssetModel(QAbstractItemModel):
 
         if role == Qt.DisplayRole:
             if index.column() == 0:
-
-                return item.google_file.metadata.get("title", "CONTACT SUPPORT SHIT IS BROKEN")
-
+                return item.google_file.metadata.get(
+                    "title", "CONTACT SUPPORT SHIT IS BROKEN"
+                )
