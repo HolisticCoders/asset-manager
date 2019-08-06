@@ -63,6 +63,10 @@ class Item:
         for child in self.children:
             child.download()
 
+    def upload(self):
+        pass
+
+
 class AssetModel(QAbstractItemModel):
     asset_column_names = ["name", "id"]
 
