@@ -39,20 +39,51 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
     def open_menu(self, position):
         menu = QtWidgets.QMenu()
         download_action = menu.addAction("Download")
-        download_action.triggered.connect(self.download_folders)
+        download_action.triggered.connect(self.download)
         upload_action = menu.addAction("Upload")
         upload_action.triggered.connect(self.upload)
 
         menu.exec_(self.tree_view.viewport().mapToGlobal(position))
 
-    def download_folders(self):
+    def download(self):
         logger.info("Downloading")
-        folders: List[Item] = [f.internalPointer() for f in self.tree_view.selectedIndexes()]
-        for folder in folders:
-            folder.download()
+        items = self._get_selected_items()
+        if self._is_local_folder_modified(items):
+            button = QtWidgets.QMessageBox.question(
+                self,
+                "Download Files",
+                "You have modifications on your local files, "
+                "do you want to override them?",
+            )
+            if button != QtWidgets.QMessageBox.Yes:
+                return
+        for item in items:
+            item.download()
 
     def upload(self, folder_name):
         logger.warning("Uploading")
-        items: List[Item] = [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+        items: List[Item] = [
+            f.internalPointer() for f in self.tree_view.selectedIndexes()
+        ]
         for item in items:
             item.upload()
+
+    def _get_selected_items(self) -> List[Item]:
+        return [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+
+    @staticmethod
+    def _is_local_folder_modified(folders: List[Item]) -> bool:
+        def _check_modifications_recursively(folder: Item) -> bool:
+            if folder.is_local_more_recent():
+                return True
+            for child in folder.children:
+                if _check_modifications_recursively(child):
+                    return True
+            return False
+
+        for folder in folders:
+            if _check_modifications_recursively(folder):
+                return True
+
+            return False
+

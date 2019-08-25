@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 from typing import List
 
 from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
@@ -14,6 +15,8 @@ from .files import list_children
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+GOOGLE_DRIVE_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 class Item:
     def __init__(
@@ -22,7 +25,7 @@ class Item:
         column: int = 0,
         google_file: GoogleDriveFile = None,
         parent=None,
-        google_drive: GoogleDrive=None, 
+        google_drive: GoogleDrive = None,
     ) -> None:
         self.row = row
         self.column = column
@@ -52,6 +55,19 @@ class Item:
     def name(self) -> str:
         return self.google_file["title"]
 
+    def is_local_more_recent(self) -> bool:
+        if not os.path.isfile(self.disk_path):
+            return False
+        server_modified_datetime = datetime.strptime(
+            self.google_file["modifiedDate"], GOOGLE_DRIVE_DATETIME_FORMAT
+        )
+        local_modified_datetime = datetime.fromtimestamp(
+            os.path.getmtime(self.disk_path)
+        )
+        if server_modified_datetime < local_modified_datetime:
+            return True
+        return False
+
     def download(self):
         logger.info(f"Downlading {self.name}")
         self.google_file.FetchMetadata()
@@ -75,7 +91,7 @@ class Item:
     def upload(self):
         logger.warning(f"Uploading {self.name}")
         if os.path.exists(self.disk_path):
-            self.google_file.SetContentFile(self.disk_path) 
+            self.google_file.SetContentFile(self.disk_path)
             self.google_file.Upload()
 
 
@@ -95,14 +111,21 @@ class AssetModel(QAbstractItemModel):
         for root_row, root_id in enumerate(self.root_ids):
             root_file = self.google_drive.CreateFile({"id": root_id})
             root_file.FetchMetadata()
-            root_item = Item(root_row, google_file=root_file, google_drive=self.google_drive)
+            root_item = Item(
+                root_row, google_file=root_file, google_drive=self.google_drive
+            )
             self.root_items.append(root_item)
             self._create_children_recursively(root_file, root_item)
 
     def _create_children_recursively(self, parent: GoogleDriveFile, parent_item: Item):
         children = list_children(self.google_drive, parent["id"])
         for row, child in enumerate(children):
-            item = Item(row, parent=parent_item, google_file=child, google_drive=self.google_drive)
+            item = Item(
+                row,
+                parent=parent_item,
+                google_file=child,
+                google_drive=self.google_drive,
+            )
             parent_item.children.append(item)
             self._create_children_recursively(child, item)
 
