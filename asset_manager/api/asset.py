@@ -85,34 +85,22 @@ class AssetModel(QAbstractItemModel):
             root_file.FetchMetadata()
             root_item = Item(root_row, google_file=root_file)
             self.root_items.append(root_item)
-            categories = list_children(self.google_drive, root_id)
+            self._create_children_recursively(root_file, root_item)
 
-            for category_row, category in enumerate(categories):
-                category_item = Item(
-                    category_row, parent=root_item, google_file=category
-                )
-                root_item.children.append(category_item)
-                assets = list_children(self.google_drive, category["id"])
-
-                for asset_row, asset in enumerate(assets):
-                    asset_item = Item(
-                        asset_row, parent=category_item, google_file=asset
-                    )
-                    category_item.children.append(asset_item)
+    def _create_children_recursively(self, parent: GoogleDriveFile, parent_item: Item):
+        children = list_children(self.google_drive, parent["id"])
+        for row, child in enumerate(children):
+            item = Item(row, parent=parent_item, google_file=child)
+            parent_item.children.append(item)
+            self._create_children_recursively(child, item)
 
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
     ) -> QModelIndex:
         if not parent.isValid():
             item = self.root_items[row]
-        elif not parent.parent().isValid():
-            root_item = self.root_items[parent.row()]
-            item = root_item.children[row]
         else:
-            root_item = self.root_items[parent.parent().row()]
-            category_item = root_item.children[parent.row()]
-            item = category_item.children[row]
-
+            item = parent.internalPointer().children[row]
         return self.createIndex(row, column, item)
 
     def parent(self, index: QModelIndex) -> QModelIndex:
