@@ -42,7 +42,9 @@ class Item:
                 break
             path_items.insert(0, parent.name)
 
-        return os.path.join(download_dir, *path_items)
+        return os.path.expandvars(
+            os.path.expanduser(os.path.join(download_dir, *path_items))
+        )
 
     @property
     def name(self) -> str:
@@ -57,6 +59,11 @@ class Item:
             if not os.path.exists(directory):
                 os.makedirs(directory)
             self.google_file.GetContentFile(filename=self.disk_path, mimetype=mimetype)
+        except KeyError:
+            logger.error(
+                "Please set the Download Directory in the File > Open Settings window."
+            )
+            return
         except FileNotDownloadableError:
             logger.warning(f"Couldn't download {self.name}")
 
