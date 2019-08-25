@@ -41,7 +41,7 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         download_action = menu.addAction("Download")
         download_action.triggered.connect(self.download_folders)
         upload_action = menu.addAction("Upload")
-        upload_action.triggered.connect(self.upload_folders)
+        upload_action.triggered.connect(self.upload)
 
         menu.exec_(self.tree_view.viewport().mapToGlobal(position))
 
@@ -51,6 +51,8 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         for folder in folders:
             folder.download()
 
-    def upload_folders(self, folder_name):
-        logger.info("Uploading")
-        folders: List[Item] = [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+    def upload(self, folder_name):
+        logger.warning("Uploading")
+        items: List[Item] = [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+        for item in items:
+            item.upload()

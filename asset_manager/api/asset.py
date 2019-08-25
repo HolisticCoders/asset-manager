@@ -22,12 +22,14 @@ class Item:
         column: int = 0,
         google_file: GoogleDriveFile = None,
         parent=None,
+        google_drive: GoogleDrive=None, 
     ) -> None:
         self.row = row
         self.column = column
         self.parent: Item = parent
         self.children: List[Item] = []
         self.google_file = google_file
+        self.google_drive = google_drive
 
     @property
     def disk_path(self) -> str:
@@ -71,7 +73,10 @@ class Item:
             child.download()
 
     def upload(self):
-        pass
+        logger.warning(f"Uploading {self.name}")
+        if os.path.exists(self.disk_path):
+            self.google_file.SetContentFile(self.disk_path) 
+            self.google_file.Upload()
 
 
 class AssetModel(QAbstractItemModel):
@@ -90,14 +95,14 @@ class AssetModel(QAbstractItemModel):
         for root_row, root_id in enumerate(self.root_ids):
             root_file = self.google_drive.CreateFile({"id": root_id})
             root_file.FetchMetadata()
-            root_item = Item(root_row, google_file=root_file)
+            root_item = Item(root_row, google_file=root_file, google_drive=self.google_drive)
             self.root_items.append(root_item)
             self._create_children_recursively(root_file, root_item)
 
     def _create_children_recursively(self, parent: GoogleDriveFile, parent_item: Item):
         children = list_children(self.google_drive, parent["id"])
         for row, child in enumerate(children):
-            item = Item(row, parent=parent_item, google_file=child)
+            item = Item(row, parent=parent_item, google_file=child, google_drive=self.google_drive)
             parent_item.children.append(item)
             self._create_children_recursively(child, item)
 
