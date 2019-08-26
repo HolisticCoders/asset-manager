@@ -26,22 +26,29 @@ class Item:
         google_file: GoogleDriveFile = None,
         parent=None,
         google_drive: GoogleDrive = None,
+        disk_path: str = "",
     ) -> None:
         self.row = row
         self.column = column
-        self.parent: Item = parent
+        self.parent_item: Item = parent
         self.children: List[Item] = []
         self.google_file = google_file
         self.google_drive = google_drive
+        self._disk_path = disk_path
 
     @property
     def disk_path(self) -> str:
+        if not self._disk_path:
+            self._disk_path = self._derive_path_from_parents()
+        return self._disk_path
+
+    def _derive_path_from_parents(self):
         download_dir = user_settings()["Download Directory"]
         path_items = [self.name]
 
         last_parent = self
         while True:
-            parent = last_parent.parent
+            parent = last_parent.parent_item
             last_parent = parent
             if parent == None:
                 break
@@ -53,7 +60,7 @@ class Item:
 
     @property
     def name(self) -> str:
-        return self.google_file["title"]
+        return os.path.basename(self.disk_path)
 
     def is_local_more_recent(self) -> bool:
         if not os.path.isfile(self.disk_path):
@@ -105,21 +112,26 @@ class AssetModel(QAbstractItemModel):
         self.google_drive = google_drive
         self.root_ids = root_ids
         self.root_items: List[Item] = []
-        self.create_item_tree()
 
-    def create_item_tree(self):
+        # self.remote_root_items: List[Item] = []
+        # self.create_remote_item_tree()
+
+        self.local_root_items: List[Item] = []
+        self.create_local_item_tree()
+
+    def create_remote_item_tree(self):
         for root_row, root_id in enumerate(self.root_ids):
             root_file = self.google_drive.CreateFile({"id": root_id})
             root_file.FetchMetadata()
             root_item = Item(
                 root_row, google_file=root_file, google_drive=self.google_drive
             )
-            self.root_items.append(root_item)
-            self._create_children_recursively(root_file, root_item)
+            self.remote_root_items.append(root_item)
+            self._create_remote_children_recursively(root_item)
 
-    def _create_children_recursively(self, parent: GoogleDriveFile, parent_item: Item):
-        children = list_children(self.google_drive, parent["id"])
-        for row, child in enumerate(children):
+    def _create_remote_children_recursively(self, parent_item: Item):
+        drive_children = list_children(self.google_drive, parent_item.google_file["id"])
+        for row, child in enumerate(drive_children):
             item = Item(
                 row,
                 parent=parent_item,
@@ -127,13 +139,33 @@ class AssetModel(QAbstractItemModel):
                 google_drive=self.google_drive,
             )
             parent_item.children.append(item)
-            self._create_children_recursively(child, item)
+            self._create_remote_children_recursively(item)
+
+    def create_local_item_tree(self):
+        download_dir = user_settings()["Download Directory"]
+        for root, folders, files in os.walk(download_dir):
+            for root_row, root_folder in enumerate(folders):
+                root_folder = os.path.join(root, root_folder)
+                root_item = Item(root_row, disk_path=root_folder)
+                self.local_root_items.append(root_item)
+                self._create_local_children_recursively(root_item)
+
+    def _create_local_children_recursively(self, parent_item: Item):
+        elements = sorted(os.listdir(parent_item.disk_path))
+        for row, element in enumerate(elements):
+            path = os.path.join(parent_item.disk_path, element)
+            item = Item(row, parent=parent_item, disk_path=path)
+
+            parent_item.children.append(item)
+
+            if os.path.isdir(path):
+                self._create_local_children_recursively(item)
 
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
     ) -> QModelIndex:
         if not parent.isValid():
-            item = self.root_items[row]
+            item = self.local_root_items[row]
         else:
             item = parent.internalPointer().children[row]
         return self.createIndex(row, column, item)
@@ -143,10 +175,10 @@ class AssetModel(QAbstractItemModel):
             return QModelIndex()
 
         item = index.internalPointer()
-        if item in self.root_items:
+        if item in self.local_root_items:
             return QModelIndex()
 
-        parent = item.parent
+        parent = item.parent_item
         if parent is None:
             return QModelIndex()
         else:
@@ -174,6 +206,7 @@ class AssetModel(QAbstractItemModel):
 
         if role == Qt.DisplayRole:
             if index.column() == 0:
-                return item.google_file.metadata.get(
-                    "title", "CONTACT SUPPORT SHIT IS BROKEN"
-                )
+                return item.name
+                # return item.google_file.metadata.get(
+                #     "title", "CONTACT SUPPORT SHIT IS BROKEN"
+                # )
