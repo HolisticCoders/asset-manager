@@ -36,11 +36,38 @@ class Item:
         self.google_drive = google_drive
         self._disk_path = disk_path
 
+    def __eq__(self, other):
+        return self.disk_path == other.disk_path
+
     @property
     def disk_path(self) -> str:
         if not self._disk_path:
             self._disk_path = self._derive_path_from_parents()
         return self._disk_path
+
+    @property
+    def ordered_children(self) -> List[Item]:
+        return sorted(self.children, key=lambda item:item.name)
+    
+    @property
+    def is_local(self):
+        return os.path.exists(self.disk_path)
+    
+    @property
+    def is_remote(self):
+        return self.google_file is not None
+    
+    @property
+    def remote_datetime(self):
+        return datetime.strptime(
+            self.google_file["modifiedDate"], GOOGLE_DRIVE_DATETIME_FORMAT
+        )
+
+    @property
+    def local_datetime(self):
+        return datetime.fromtimestamp(
+            os.path.getmtime(self.disk_path)
+        )
 
     def _derive_path_from_parents(self):
         download_dir = user_settings()["Download Directory"]
@@ -63,15 +90,9 @@ class Item:
         return os.path.basename(self.disk_path)
 
     def is_local_more_recent(self) -> bool:
-        if not os.path.isfile(self.disk_path):
+        if self.is_local:
             return False
-        server_modified_datetime = datetime.strptime(
-            self.google_file["modifiedDate"], GOOGLE_DRIVE_DATETIME_FORMAT
-        )
-        local_modified_datetime = datetime.fromtimestamp(
-            os.path.getmtime(self.disk_path)
-        )
-        if server_modified_datetime < local_modified_datetime:
+        if self.remote_datetime < self.local_datetime:
             return True
         return False
 
@@ -160,6 +181,10 @@ class AssetModel(QAbstractItemModel):
 
             if os.path.isdir(path):
                 self._create_local_children_recursively(item)
+
+    def merge_local_and_remote_trees(self):
+        local = self.local_root_items
+        remote = self.remote_root_items
 
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
