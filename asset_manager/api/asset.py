@@ -1,7 +1,8 @@
-import logging
-import os
+from copy import deepcopy
 from datetime import datetime
 from typing import List
+import logging
+import os
 
 from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
 
@@ -46,7 +47,7 @@ class Item:
         return self._disk_path
 
     @property
-    def ordered_children(self) -> List[Item]:
+    def ordered_children(self):
         return sorted(self.children, key=lambda item:item.name)
     
     @property
@@ -134,11 +135,13 @@ class AssetModel(QAbstractItemModel):
         self.root_ids = root_ids
         self.root_items: List[Item] = []
 
-        # self.remote_root_items: List[Item] = []
-        # self.create_remote_item_tree()
+        self.remote_root_items: List[Item] = []
+        self.create_remote_item_tree()
 
         self.local_root_items: List[Item] = []
         self.create_local_item_tree()
+
+        self.merge_local_and_remote_trees()
 
     def create_remote_item_tree(self):
         for root_row, root_id in enumerate(self.root_ids):
@@ -183,14 +186,32 @@ class AssetModel(QAbstractItemModel):
                 self._create_local_children_recursively(item)
 
     def merge_local_and_remote_trees(self):
-        local = self.local_root_items
-        remote = self.remote_root_items
+        self.root_items = deepcopy(self.remote_root_items)
+        self.merge_trees_recursively(self.root_items, self.local_root_items)
+    
+    def merge_trees_recursively(self, items, local_items):
 
+        def get_local_from_item(item):
+            for local_item in local_items:
+                if item == local_item:
+                    return local_item
+
+        for item in items:
+            local_item = get_local_from_item(item)
+            if local_item is None:
+                continue
+
+            for local_child in local_item:
+                if local_child not in item.children:
+                    item.children.append(item)
+            self.recurse_merge_trees(item.children, local_item.children)
+
+    
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
     ) -> QModelIndex:
         if not parent.isValid():
-            item = self.local_root_items[row]
+            item = self.root_items[row]
         else:
             item = parent.internalPointer().children[row]
         return self.createIndex(row, column, item)
@@ -200,7 +221,7 @@ class AssetModel(QAbstractItemModel):
             return QModelIndex()
 
         item = index.internalPointer()
-        if item in self.local_root_items:
+        if item in self.root_items:
             return QModelIndex()
 
         parent = item.parent_item
