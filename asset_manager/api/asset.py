@@ -30,7 +30,7 @@ class Item:
         google_drive: GoogleDrive = None,
         disk_path: str = "",
     ) -> None:
-        self._row = row
+        self.row = row
         self.column = column
         self.parent_item: Item = parent
         self.children: List[Item] = []
@@ -40,13 +40,6 @@ class Item:
 
     def __eq__(self, other):
         return self.disk_path == other.disk_path
-
-    @property
-    def row(self):
-        if self.parent_item:
-            if self in self.parent_item.children:
-                return self.parent_item.children.index(self)
-        return self._row
 
     @property
     def disk_path(self) -> str:
@@ -205,12 +198,14 @@ class AssetModel(QAbstractItemModel):
 
         for item in items:
             local_item = get_local_from_item(item)
-            if local_item is None:
+            if not local_item:
                 continue
 
             for local_child in local_item.children:
                 if local_child not in item.children:
-                    item.children.append(item)
+                    item.children.append(local_child)
+                    local_child.parent_item = item
+                    local_child.row = len(item.children) - 1
 
             self.merge_trees_recursively(item.children, local_item.children)
 
