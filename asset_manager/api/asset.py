@@ -1,4 +1,5 @@
 import logging
+import hashlib
 import os
 import pdb
 from copy import deepcopy
@@ -146,10 +147,10 @@ class Item:
             return False
         if not os.path.isfile(self.disk_path):
             return False
-        with open(self.disk_path, "r+") as handle:
-            local_content = handle.read()
-        remote_content = self.google_file.GetContentString()
-        return local_content != remote_content
+        local_content = self._get_local_content_bytes()
+        local_checksum = hashlib.md5(local_content).hexdigest()
+        remote_checksum = self.google_file["md5Checksum"]
+        return local_checksum != remote_checksum
 
     def is_local_modified(self) -> bool:
         if not os.path.isfile(self.disk_path):
@@ -184,6 +185,14 @@ class Item:
         if os.path.exists(self.disk_path):
             self.google_file.SetContentFile(self.disk_path)
             self.google_file.Upload()
+
+    def _get_local_content_bytes(self):
+        try:
+            with open(self.disk_path) as handle:
+                return handle.read().encode()
+        except UnicodeDecodeError:
+            with open(self.disk_path, "rb") as handle:
+                return handle.read()
 
 
 class AssetModel(QAbstractItemModel):
