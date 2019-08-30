@@ -20,6 +20,21 @@ def _settings_path():
     return os.path.join(config_folder, "config.json")
 
 
+def credentials_path():
+    config_folder = appdirs.user_config_dir("asset-manager")
+    return os.path.join(config_folder, "credentials.json")
+
+
+def client_secrets_path():
+    path = os.environ.get("ASSET_MANAGER_CLIENT_SECRETS")
+
+    if not path:
+        config_folder = appdirs.user_config_dir("asset-manager")
+        path = os.path.join(config_folder, "client_secrets.json")
+
+    return path
+
+
 def user_settings() -> dict:
     settings_path = _settings_path()
 
