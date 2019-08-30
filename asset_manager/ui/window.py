@@ -3,9 +3,9 @@ from typing import List
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from asset_manager.api.asset import AssetModel, Item
+from asset_manager.api.item import ItemModel, Item
 from asset_manager.api.auth import connect_to_google_drive
-from asset_manager.api.config import FOLDER_IDS
+from asset_manager.api.config import FOLDER_IDS, user_settings
 from asset_manager.ui.settings import SettingsDialog
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         self.tree_view.customContextMenuRequested.connect(self.open_menu)
         self.setCentralWidget(self.tree_view)
         google_drive = connect_to_google_drive()
-        model = AssetModel(google_drive, FOLDER_IDS)
+        model = ItemModel(google_drive, FOLDER_IDS)
         self.tree_view.setModel(model)
         self.tree_view.header().hide()
 

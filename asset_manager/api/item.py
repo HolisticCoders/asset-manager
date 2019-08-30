@@ -75,6 +75,20 @@ class Item:
     @property
     def is_remote(self):
         return self.google_file is not None
+    
+    @property
+    def is_folder(self):
+        if self.is_local:
+            return os.path.isdir(self.disk_path)
+        else:
+            self.google_file["mimeType"] == "application/vnd.google-apps.folder"
+    
+    @property
+    def is_file(self):
+        if self.is_remote:
+            return os.path.isfile(self.disk_path)
+        else:
+            self.google_file["mimeType"] != "application/vnd.google-apps.folder"
 
     @property
     def status(self):
@@ -122,6 +136,11 @@ class Item:
         if self.google_file:
             return self.google_file["title"]
         return os.path.basename(self.disk_path)
+    
+    @property
+    def url(self) -> str:
+        if self.google_file:
+            return self.google_file["alternateLink"]
 
     def is_local_more_recent(self) -> bool:
         if not self.is_local:
@@ -182,9 +201,11 @@ class Item:
 
     def upload(self):
         logger.warning(f"Uploading {self.name}")
-        if os.path.exists(self.disk_path):
+        if self.is_remote:
             self.google_file.SetContentFile(self.disk_path)
             self.google_file.Upload()
+        elif self.is_local:
+            pass
 
     def _get_local_content_bytes(self):
         try:
@@ -195,8 +216,8 @@ class Item:
                 return handle.read()
 
 
-class AssetModel(QAbstractItemModel):
-    asset_column_names = ["name", "id"]
+class ItemModel(QAbstractItemModel):
+    item_column_names = ["name", "id"]
 
     def __init__(
         self, google_drive: GoogleDrive, root_ids: List[str], parent: QObject = None
@@ -314,7 +335,7 @@ class AssetModel(QAbstractItemModel):
         if not parent.parent().isValid():
             return 1
 
-        return len(AssetModel.asset_column_names)
+        return len(ItemModel.item_column_names)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.DisplayRole):
         if not index.isValid():
