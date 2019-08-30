@@ -6,11 +6,12 @@ from datetime import datetime
 from typing import List
 
 from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
+from PySide2.QtGui import QBrush, QColor
 
 from pydrive.drive import GoogleDrive
 from pydrive.files import GoogleDriveFile, FileNotDownloadableError
 
-from .config import user_settings
+from .config import ITEM_STATE_COLORS, user_settings
 from .files import list_children
 
 
@@ -255,6 +256,17 @@ class AssetModel(QAbstractItemModel):
         if role == Qt.DisplayRole:
             if index.column() == 0:
                 return item.name
-                # return item.google_file.metadata.get(
-                #     "title", "CONTACT SUPPORT SHIT IS BROKEN"
-                # )
+        if role == Qt.ForegroundRole:
+            if index.column() == 0:
+                status = "synced"
+                if item.is_local and not item.is_remote:
+                    status = "local-only"
+                elif item.is_remote and not item.is_local:
+                    status = "remote-only"
+                else:
+                    if item.is_local_more_recent:
+                        status = "modified-locally"
+                    elif not os.path.isfile(item.disk_path):
+                        status = "deleted-locally"
+                color = QColor(ITEM_STATE_COLORS[status])
+                return QBrush(color)
