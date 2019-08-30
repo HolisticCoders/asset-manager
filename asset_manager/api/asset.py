@@ -93,11 +93,19 @@ class Item:
         return os.path.basename(self.disk_path)
 
     def is_local_more_recent(self) -> bool:
-        if self.is_local:
+        if not self.is_local:
             return False
         if self.remote_datetime < self.local_datetime:
             return True
         return False
+
+    def is_local_modified(self):
+        if not os.path.isfile(self.disk_path):
+            return False
+        with open(self.disk_path, "r+") as handle:
+            local_content = handle.read()
+        remote_content = self.google_file.GetContentString()
+        return local_content != remote_content
 
     def download(self):
         logger.info(f"Downlading {self.name}")
@@ -264,7 +272,7 @@ class AssetModel(QAbstractItemModel):
                 elif item.is_remote and not item.is_local:
                     status = "remote-only"
                 else:
-                    if item.is_local_more_recent():
+                    if item.is_local_more_recent() and item.is_local_modified():
                         status = "modified-locally"
                     elif not os.path.exists(item.disk_path):
                         status = "deleted-locally"
