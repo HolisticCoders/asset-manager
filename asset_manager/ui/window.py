@@ -1,4 +1,6 @@
 import logging
+import subprocess
+import webbrowser
 from typing import List
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -38,10 +40,28 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
 
     def open_menu(self, position):
         menu = QtWidgets.QMenu()
+        selected_item = self._get_selected_item()
+
         download_action = menu.addAction("Download")
         download_action.triggered.connect(self.download)
+
         upload_action = menu.addAction("Upload")
         upload_action.triggered.connect(self.upload)
+
+        open_explorer_action = menu.addAction("Open In Explorer")
+        open_explorer_action.triggered.connect(self.open_in_explorer)
+
+
+        open_drive_action = menu.addAction("Open On Google Drive")
+        open_drive_action.triggered.connect(self.open_on_drive)
+
+        if not selected_item.is_local:
+            upload_action.setEnabled(False)
+            open_explorer_action.setEnabled(False)
+
+        if not selected_item.is_remote:
+            download_action.setEnabled(False)
+            open_drive_action.setEnabled(False)
 
         menu.exec_(self.tree_view.viewport().mapToGlobal(position))
 
@@ -60,16 +80,34 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         for item in items:
             item.download()
 
-    def upload(self, folder_name):
+    def upload(self):
         logger.warning("Uploading")
-        items: List[Item] = [
-            f.internalPointer() for f in self.tree_view.selectedIndexes()
-        ]
+        items = self._get_selected_items()
         for item in items:
             item.upload()
+    
+    def open_in_explorer(self, *args, **kwargs):
+        item = self._get_selected_item()
+        if item.is_local:
+            path = item.disk_path.replace('/', "\\")
+            if item.is_file:
+                command = f'explorer /select,"{path}"'
+            else:
+                command = f'explorer "{path}"'
+            subprocess.Popen(command)
+
+    def open_on_drive(self):
+        item = self._get_selected_item()
+        if item.is_remote:
+            if not item.is_folder:
+                item = item.parent_item
+            webbrowser.open_new_tab(item.url)
 
     def _get_selected_items(self) -> List[Item]:
         return [f.internalPointer() for f in self.tree_view.selectedIndexes()]
+
+    def _get_selected_item(self) -> Item:
+        return self.tree_view.currentIndex().internalPointer()
 
     @staticmethod
     def _is_local_folder_modified(folders: List[Item]) -> bool:
