@@ -74,7 +74,7 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
     @staticmethod
     def _is_local_folder_modified(folders: List[Item]) -> bool:
         def _check_modifications_recursively(folder: Item) -> bool:
-            if folder.is_local_more_recent():
+            if folder.status == Item.Status.ModifiedLocally:
                 return True
             for child in folder.children:
                 if _check_modifications_recursively(child):
