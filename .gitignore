@@ -113,3 +113,5 @@ venv.bak/
 asset_manager_config.py
 tags
 
+# auto-py-to-exe
+output/*
