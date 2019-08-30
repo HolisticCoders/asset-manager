@@ -3,7 +3,9 @@ import os
 import pdb
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from typing import List
+
 
 from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
 from PySide2.QtGui import QBrush, QColor
@@ -22,6 +24,19 @@ GOOGLE_DRIVE_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class Item:
+    class Status(Enum):
+        RemoteOnly = "remote-only"
+        Synced = "synced"
+        LocalOnly = "local-only"
+        ModifiedLocally = "modified-locally"
+        DeletedLocally = "deleted-locally"
+        ModifiedRemotely = "modified-remotely"
+        DeletedRemotely = "deleted-remotely"
+
+    class Kind(Enum):
+        Remote = "remote"
+        Local = "local"
+
     def __init__(
         self,
         row: int = 0,
@@ -59,6 +74,21 @@ class Item:
     @property
     def is_remote(self):
         return self.google_file is not None
+
+    @property
+    def status(self):
+        if self.is_local and not self.is_remote:
+            return Item.Status.LocalOnly
+        elif self.is_remote and not self.is_local:
+            return Item.Status.RemoteOnly
+        else:
+            more_recent = self.get_more_recent()
+            if more_recent and self.is_content_modified():
+                if more_recent == Item.Kind.Remote:
+                    return Item.Status.ModifiedRemotely
+                else:
+                    return Item.Status.ModifiedLocally
+        return Item.Status.Synced
 
     @property
     def remote_datetime(self):
@@ -99,7 +129,24 @@ class Item:
             return True
         return False
 
-    def is_local_modified(self):
+    def get_more_recent(self):
+        if self.remote_datetime < self.local_datetime:
+            return Item.Kind.Local
+        elif self.local_datetime < self.remote_datetime:
+            return Item.Kind.Remote
+        return None
+
+    def is_content_modified(self) -> bool:
+        if not self.is_local or not self.is_remote:
+            return False
+        if not os.path.isfile(self.disk_path):
+            return False
+        with open(self.disk_path, "r+") as handle:
+            local_content = handle.read()
+        remote_content = self.google_file.GetContentString()
+        return local_content != remote_content
+
+    def is_local_modified(self) -> bool:
         if not os.path.isfile(self.disk_path):
             return False
         with open(self.disk_path, "r+") as handle:
@@ -266,15 +313,6 @@ class AssetModel(QAbstractItemModel):
                 return item.name
         if role == Qt.ForegroundRole:
             if index.column() == 0:
-                status = "synced"
-                if item.is_local and not item.is_remote:
-                    status = "local-only"
-                elif item.is_remote and not item.is_local:
-                    status = "remote-only"
-                else:
-                    if item.is_local_more_recent() and item.is_local_modified():
-                        status = "modified-locally"
-                    elif not os.path.exists(item.disk_path):
-                        status = "deleted-locally"
+                status = item.status.value
                 color = QColor(ITEM_STATE_COLORS[status])
                 return QBrush(color)
