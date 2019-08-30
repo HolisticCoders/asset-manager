@@ -130,10 +130,15 @@ class Item:
         return False
 
     def get_more_recent(self):
-        if self.remote_datetime < self.local_datetime:
+        if self.is_local and not self.is_remote:
             return Item.Kind.Local
-        elif self.local_datetime < self.remote_datetime:
+        elif self.is_remote and not self.is_local:
             return Item.Kind.Remote
+        else:
+            if self.remote_datetime < self.local_datetime:
+                return Item.Kind.Local
+            elif self.local_datetime < self.remote_datetime:
+                return Item.Kind.Remote
         return None
 
     def is_content_modified(self) -> bool:
