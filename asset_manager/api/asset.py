@@ -264,9 +264,9 @@ class AssetModel(QAbstractItemModel):
                 elif item.is_remote and not item.is_local:
                     status = "remote-only"
                 else:
-                    if item.is_local_more_recent:
+                    if item.is_local_more_recent():
                         status = "modified-locally"
-                    elif not os.path.isfile(item.disk_path):
+                    elif not os.path.exists(item.disk_path):
                         status = "deleted-locally"
                 color = QColor(ITEM_STATE_COLORS[status])
                 return QBrush(color)
