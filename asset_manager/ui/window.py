@@ -67,8 +67,8 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
 
     def download(self):
         logger.info("Downloading")
-        items = self._get_selected_items()
-        if self._is_local_folder_modified(items):
+        item = self._get_selected_item()
+        if self._is_local_folder_modified(item):
             button = QtWidgets.QMessageBox.question(
                 self,
                 "Download Files",
@@ -77,14 +77,12 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
             )
             if button != QtWidgets.QMessageBox.Yes:
                 return
-        for item in items:
-            item.download()
+        item.download()
 
     def upload(self):
         logger.warning("Uploading")
-        items = self._get_selected_items()
-        for item in items:
-            item.upload()
+        item = self._get_selected_item()
+        item.upload()
     
     def open_in_explorer(self, *args, **kwargs):
         item = self._get_selected_item()
@@ -110,7 +108,7 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
         return self.tree_view.currentIndex().internalPointer()
 
     @staticmethod
-    def _is_local_folder_modified(folders: List[Item]) -> bool:
+    def _is_local_folder_modified(folder: Item) -> bool:
         def _check_modifications_recursively(folder: Item) -> bool:
             if folder.status == Item.Status.ModifiedLocally:
                 return True
@@ -119,9 +117,8 @@ class AssetManagerWindow(QtWidgets.QMainWindow):
                     return True
             return False
 
-        for folder in folders:
-            if _check_modifications_recursively(folder):
-                return True
+        if _check_modifications_recursively(folder):
+            return True
 
-            return False
+        return False
 
