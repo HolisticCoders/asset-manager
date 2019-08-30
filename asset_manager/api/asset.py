@@ -1,8 +1,9 @@
+import logging
+import os
+import pdb
 from copy import deepcopy
 from datetime import datetime
 from typing import List
-import logging
-import os
 
 from PySide2.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
 
@@ -29,7 +30,7 @@ class Item:
         google_drive: GoogleDrive = None,
         disk_path: str = "",
     ) -> None:
-        self.row = row
+        self._row = row
         self.column = column
         self.parent_item: Item = parent
         self.children: List[Item] = []
@@ -41,6 +42,13 @@ class Item:
         return self.disk_path == other.disk_path
 
     @property
+    def row(self):
+        if self.parent_item:
+            if self in self.parent_item.children:
+                return self.parent_item.children.index(self)
+        return self._row
+
+    @property
     def disk_path(self) -> str:
         if not self._disk_path:
             self._disk_path = self._derive_path_from_parents()
@@ -48,16 +56,16 @@ class Item:
 
     @property
     def ordered_children(self):
-        return sorted(self.children, key=lambda item:item.name)
-    
+        return sorted(self.children, key=lambda item: item.name)
+
     @property
     def is_local(self):
         return os.path.exists(self.disk_path)
-    
+
     @property
     def is_remote(self):
         return self.google_file is not None
-    
+
     @property
     def remote_datetime(self):
         return datetime.strptime(
@@ -66,9 +74,7 @@ class Item:
 
     @property
     def local_datetime(self):
-        return datetime.fromtimestamp(
-            os.path.getmtime(self.disk_path)
-        )
+        return datetime.fromtimestamp(os.path.getmtime(self.disk_path))
 
     def _derive_path_from_parents(self):
         download_dir = user_settings()["Download Directory"]
@@ -78,7 +84,7 @@ class Item:
         while True:
             parent = last_parent.parent_item
             last_parent = parent
-            if parent == None:
+            if not parent:
                 break
             path_items.insert(0, parent.name)
 
@@ -88,6 +94,8 @@ class Item:
 
     @property
     def name(self) -> str:
+        if self.google_file:
+            return self.google_file["title"]
         return os.path.basename(self.disk_path)
 
     def is_local_more_recent(self) -> bool:
@@ -188,9 +196,8 @@ class AssetModel(QAbstractItemModel):
     def merge_local_and_remote_trees(self):
         self.root_items = deepcopy(self.remote_root_items)
         self.merge_trees_recursively(self.root_items, self.local_root_items)
-    
-    def merge_trees_recursively(self, items, local_items):
 
+    def merge_trees_recursively(self, items, local_items):
         def get_local_from_item(item):
             for local_item in local_items:
                 if item == local_item:
@@ -201,12 +208,12 @@ class AssetModel(QAbstractItemModel):
             if local_item is None:
                 continue
 
-            for local_child in local_item:
+            for local_child in local_item.children:
                 if local_child not in item.children:
                     item.children.append(item)
-            self.recurse_merge_trees(item.children, local_item.children)
 
-    
+            self.merge_trees_recursively(item.children, local_item.children)
+
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
     ) -> QModelIndex:
