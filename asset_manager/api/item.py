@@ -200,12 +200,34 @@ class Item:
             child.download()
 
     def upload(self):
+
+        if not self.is_local:
+            logger.error(f"{self.name} Is not a local file and can't be uploaded")
+            return
+
         logger.warning(f"Uploading {self.name}")
         if self.is_remote:
+            if self.is_file:
             self.google_file.SetContentFile(self.disk_path)
+        else:
+            if not self.parent_item.is_remote:
+                self.parent_item.upload()
+
+            parent_id = self.parent_item.google_file["id"]
+            metadata = {
+                "title": self.name,
+                "parents": [{"kind": "drive#fileLink", "id": parent_id}],
+            }
+
+            if self.is_folder:
+                metadata["mimeType"] = "application/vnd.google-apps.folder"
+
+            self.google_file = self.google_drive.CreateFile(metadata)
+
+            if self.is_file:
+                self.google_file.SetContentFile(self.disk_path)
+
             self.google_file.Upload()
-        elif self.is_local:
-            pass
 
     def _get_local_content_bytes(self):
         try:
@@ -262,7 +284,9 @@ class ItemModel(QAbstractItemModel):
         for root, folders, files in os.walk(download_dir):
             for root_row, root_folder in enumerate(folders):
                 root_folder = os.path.join(root, root_folder)
-                root_item = Item(root_row, disk_path=root_folder)
+                root_item = Item(
+                    root_row, disk_path=root_folder, google_drive=self.google_drive
+                )
                 self.local_root_items.append(root_item)
                 self._create_local_children_recursively(root_item)
 
@@ -270,7 +294,9 @@ class ItemModel(QAbstractItemModel):
         elements = sorted(os.listdir(parent_item.disk_path))
         for row, element in enumerate(elements):
             path = os.path.join(parent_item.disk_path, element)
-            item = Item(row, parent=parent_item, disk_path=path)
+            item = Item(
+                row, parent=parent_item, disk_path=path, google_drive=self.google_drive
+            )
 
             parent_item.children.append(item)
 
